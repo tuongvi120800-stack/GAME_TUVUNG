@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我說你猜</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#ffffff; --ink:#1f2328; --muted:#5d6670; --line:#e2ded5;
+    --brand:#1f6f5c; --brand-soft:#e3f1ec; --warn:#c2410c; --bad:#b42318; --good:#15803d;
+    --accent:#f2b705;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15181b; --card:#1e2226; --ink:#eef0f2; --muted:#a3abb3; --line:#30363c;
+      --brand:#4cc3a3; --brand-soft:#1d3a33; --warn:#fb923c; --bad:#f87171; --good:#4ade80;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15181b; --card:#1e2226; --ink:#eef0f2; --muted:#a3abb3; --line:#30363c;
+    --brand:#4cc3a3; --brand-soft:#1d3a33; --warn:#fb923c; --bad:#f87171; --good:#4ade80;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC","Heiti TC",system-ui,sans-serif;}
+  .wrap{max-width:1400px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  h1{margin:0;font-size:34px;letter-spacing:2px}
+  h1 small{font-size:16px;color:var(--muted);letter-spacing:0;font-weight:normal;margin-left:8px}
+  .progress{flex:1;min-width:260px}
+  .progress .label{font-size:20px;font-weight:bold;margin-bottom:6px}
+  .progress .label b{font-size:30px;color:var(--brand)}
+  .bar{height:18px;background:var(--line);border-radius:9px;overflow:hidden}
+  .bar>div{height:100%;width:0;background:var(--brand);transition:width .4s}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .wordbox{text-align:center;padding:20px 10px;border-radius:12px;background:var(--brand-soft);min-height:150px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center}
+  .wordbox .w{font-size:64px;font-weight:bold;line-height:1.2}
+  .wordbox .s{font-size:18px;color:var(--muted);margin-top:6px}
+  .stars{color:var(--accent);font-size:22px}
+  .timer{font-size:96px;font-weight:bold;text-align:center;font-variant-numeric:tabular-nums;margin:10px 0 0}
+  .timer.low{color:var(--bad)}
+  .hint{text-align:center;font-size:22px;min-height:32px;color:var(--warn);font-weight:bold}
+  .btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+  button{font:inherit;font-size:20px;padding:12px 10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer}
+  button:hover{filter:brightness(.97)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .good{background:var(--good);color:#fff;border-color:var(--good)}
+  .bad{background:var(--bad);color:#fff;border-color:var(--bad)}
+  .full{grid-column:1/-1}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:16px;color:var(--muted)}
+  .row select,.row button{font-size:16px;padding:8px 10px}
+  .msg{margin-top:10px;font-size:16px;color:var(--warn);min-height:22px}
+  h2{margin:0 0 4px;font-size:24px}
+  .sub{color:var(--muted);font-size:16px;margin:0 0 12px}
+  .frames{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  @media (max-width:600px){.frames{grid-template-columns:1fr}}
+  .col h3{margin:0 0 8px;font-size:20px;padding:6px 10px;border-radius:8px;background:var(--brand-soft)}
+  .col ul{list-style:none;margin:0;padding:0}
+  .col li{font-size:21px;padding:7px 4px;border-bottom:1px dashed var(--line);line-height:1.4}
+  .col li span{display:block;font-size:14px;color:var(--muted)}
+  .answer{margin-top:12px;font-size:19px;padding:10px 12px;border-radius:10px;border:2px dashed var(--brand)}
+  .rules{margin-top:16px}
+  .rules ul{margin:6px 0 0;padding-left:22px;font-size:17px;line-height:1.6}
+  .rules li span{color:var(--muted);font-size:14px}
+  .log{margin-top:16px}
+  .log ol{margin:6px 0 0;padding-left:26px;font-size:17px;columns:3;column-gap:24px}
+  @media (max-width:700px){.log ol{columns:1}}
+  .tag{font-size:13px;padding:1px 6px;border-radius:6px;margin-left:4px;color:#fff}
+  .tag.ok{background:var(--good)} .tag.no{background:var(--bad)} .tag.skip{background:var(--muted)}
+  details{margin-top:16px}
+  summary{cursor:pointer;font-size:17px;color:var(--muted)}
+  .edit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+  @media (max-width:700px){.edit{grid-template-columns:1fr}}
+  .edit label{font-size:15px;color:var(--muted)}
+  textarea{width:100%;height:180px;font:inherit;font-size:16px;padding:8px;border-radius:8px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .py{display:block;font-style:normal;font-family:"Segoe UI",Arial,sans-serif;font-size:15px;font-weight:normal;color:var(--brand);line-height:1.35;margin-top:2px}
+  #peek{position:fixed;inset:0;background:#000;color:#fff;display:none;flex-direction:column;
+    align-items:center;justify-content:center;z-index:50}
+  #peek .w{font-size:120px;font-weight:bold}
+  #peek .s{font-size:22px;opacity:.7;margin-top:10px}
+  #win{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:40}
+  #win .box{background:var(--card);color:var(--ink);padding:36px 48px;border-radius:18px;text-align:center}
+  #win .box div{font-size:56px;font-weight:bold}
+  #win .box p{font-size:22px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>我說你猜<small>Em tả – cả lớp đoán</small></h1>
+    <div class="progress">
+      <div class="label">全班猜對 <b id="count">0</b> / <span id="goal">20</span> 個詞</div>
+      <div class="bar"><div id="barFill"></div></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 左：遊戲控制 -->
+    <section class="card">
+      <div class="wordbox" id="wordbox">
+        <div class="w" id="wordText">第 1 題</div>
+        <div class="s" id="wordSub">說的人用手機抽詞，再按「開始」<br>Người tả rút từ trên điện thoại, rồi bấm 開始</div>
+      </div>
+      <div class="timer" id="timer">3:00</div>
+      <div class="hint" id="hint"></div>
+
+      <div class="btns">
+        <button class="primary full" id="btnStart">開始 Bắt đầu</button>
+        <button class="good full" id="btnRight" disabled>猜對了！Đoán đúng ✓</button>
+        <button id="btnSkip" disabled>跳過 Bỏ qua</button>
+        <button class="bad" id="btnFoul" disabled>犯規 Vi phạm ✗</button>
+      </div>
+
+      <div class="row">
+        <button id="btnReset">重新開始</button>
+        <span id="resetAsk" hidden>確定？分數會歸零 <button id="resetYes">確定</button> <button id="resetNo">取消</button></span>
+      </div>
+      <div class="msg" id="msg"></div>
+    </section>
+
+    <!-- 右：句型 -->
+    <section class="card">
+      <h2>句型 Khung câu <em class="py" style="display:inline">jùxíng</em></h2>
+      <p class="sub">說的人用左邊的句型說明；下面的同學用右邊的句型問問題，聽回答再猜。
+        <em class="py">shuō de rén yòng zuǒbiān de jùxíng shuōmíng; xiàmiàn de tóngxué yòng yòubiān de jùxíng wèn wèntí, tīng huídá zài cāi.</em>
+        Người tả dùng khung bên trái; các bạn bên dưới dùng khung bên phải để hỏi, nghe trả lời rồi đoán.</p>
+      <div class="frames">
+        <div class="col">
+          <h3>🗣 說的人 Người tả <em class="py">shuō de rén</em></h3>
+          <ul>
+            <li>這是一個東西／地方／動作／人／食物。<em class="py">zhè shì yí ge dōngxi / dìfang / dòngzuò / rén / shíwù.</em><span>Loại</span></li>
+            <li>我們早上／下課以後常常……<em class="py">wǒmen zǎoshang / xià kè yǐhòu chángcháng……</em><span>Lúc nào</span></li>
+            <li>在學校／家／夜市可以看到。<em class="py">zài xuéxiào / jiā / yèshì kěyǐ kàndào.</em><span>Ở đâu</span></li>
+            <li>我們用它來……<em class="py">wǒmen yòng tā lái……</em><span>Dùng làm gì</span></li>
+            <li>它跟……很像，可是……<em class="py">tā gēn …… hěn xiàng, kěshì……</em><span>Giống gì</span></li>
+            <li>不是……，是……<em class="py">bú shì……, shì……</em><span>Không phải</span></li>
+            <li>它是大／小／圓的，顏色是……<em class="py">tā shì dà / xiǎo / yuán de, yánsè shì……</em><span>Hình dáng</span></li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>🙋 下面的同學 Các bạn hỏi <em class="py">xiàmiàn de tóngxué</em></h3>
+          <ul>
+            <li>這是東西嗎？是地方嗎？是動作嗎？<em class="py">zhè shì dōngxi ma? shì dìfang ma? shì dòngzuò ma?</em><span>Hỏi loại</span></li>
+            <li>我們什麼時候做／用？早上嗎？<em class="py">wǒmen shénme shíhou zuò / yòng? zǎoshang ma?</em><span>Hỏi lúc nào</span></li>
+            <li>在哪裡可以看到？在學校嗎？<em class="py">zài nǎlǐ kěyǐ kàndào? zài xuéxiào ma?</em><span>Hỏi ở đâu</span></li>
+            <li>我們用它來做什麼？<em class="py">wǒmen yòng tā lái zuò shénme?</em><span>Hỏi dùng làm gì</span></li>
+            <li>它跟……一樣嗎？<em class="py">tā gēn …… yíyàng ma?</em><span>Hỏi giống gì</span></li>
+            <li>它是大的還是小的？<em class="py">tā shì dà de háishì xiǎo de?</em><span>Hỏi hình dáng</span></li>
+            <li>它是什麼顏色的？<em class="py">tā shì shénme yánsè de?</em><span>Hỏi màu sắc</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="answer">說的人回答 Người tả trả lời：<b>對／不對</b>、<b>是／不是</b>，再多說一句。
+        <em class="py">duì / bú duì, shì / bú shì, zài duō shuō yí jù.</em>
+        <span style="font-size:15px;color:var(--muted)">Ví dụ：「不是，它不是東西，是一個動作。」 bú shì, tā bú shì dōngxi, shì yí ge dòngzuò.</span></div>
+
+      <div class="rules">
+        <h2>規則 Luật <em class="py" style="display:inline">guīzé</em></h2>
+        <ul>
+          <li>每個詞 3 分鐘。<em class="py">měi ge cí sān fēnzhōng.</em><span>Mỗi từ 3 phút.</span></li>
+          <li>不可以說這個詞，也不可以說詞裡的字。<em class="py">bù kěyǐ shuō zhè ge cí, yě bù kěyǐ shuō cí lǐ de zì.</em><span>Không nói từ đó, không nói chữ nào trong từ đó.</span></li>
+          <li>不可以說越南文、英文，不可以寫字。<em class="py">bù kěyǐ shuō Yuènánwén, Yīngwén, bù kěyǐ xiě zì.</em><span>Không nói tiếng Việt, tiếng Anh, không viết chữ.</span></li>
+          <li>30 秒以後才可以比動作。<em class="py">sānshí miǎo yǐhòu cái kěyǐ bǐ dòngzuò.</em><span>Sau 30 giây mới được dùng tay chân.</span></li>
+          <li>每個人可以跳過 1 次。<em class="py">měi ge rén kěyǐ tiàoguò yí cì.</em><span>Mỗi người được bỏ qua 1 lần.</span></li>
+          <li>猜對的人下一個上台；上過台的人不再上台。<em class="py">cāi duì de rén xià yí ge shàng tái; shàng guò tái de rén bú zài shàng tái.</em><span>Ai đoán đúng lên lượt sau; ai lên rồi thì nhường người bên cạnh.</span></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <section class="card log">
+    <h2>紀錄 Ghi lại <span id="logSum" style="font-size:15px;color:var(--muted);font-weight:normal"></span></h2>
+    <ol id="log"></ol>
+  </section>
+
+  <details>
+    <summary>⚙ 老師：設定目標 Đặt mục tiêu</summary>
+    <div class="row">
+      <label>目標 Mục tiêu：<input id="goalInput" type="number" min="1" max="99" value="20" style="width:70px;font:inherit;font-size:16px;padding:6px"></label>
+      <button id="btnSave">儲存 Lưu</button>
+    </div>
+  </details>
+</div>
+
+<div id="win"><div class="box"><div>🎉 全班達成！</div><p id="winText"></p><button class="primary" id="btnWinClose">繼續 Tiếp tục</button></div></div>
+
+<script>
+(function(){
+  var TOTAL = 180;
+  var $ = function(id){return document.getElementById(id);};
+  function loadGoal(){ try{ var g=parseInt(localStorage.getItem("wsnc_goal"),10); if(g>0) return g; }catch(e){} return 20; }
+  var goal = loadGoal();
+  var phase, timeLeft, tick, correct, results, won, turn;
+
+  function reset(){
+    stop(); phase="ready"; timeLeft=TOTAL; correct=0; results=[]; won=false; turn=1;
+    $("goal").textContent=goal; $("goalInput").value=goal;
+    setBox("第 1 題", "說的人用手機抽詞，再按「開始」<br>Người tả rút từ trên điện thoại, rồi bấm 開始");
+    msg(""); render();
+  }
+  function msg(t){ $("msg").textContent=t; }
+  function setBox(a,b){ $("wordText").textContent=a; $("wordSub").innerHTML=b; }
+  function fmt(s){ return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2); }
+
+  function render(){
+    $("timer").textContent=fmt(timeLeft);
+    $("timer").classList.toggle("low", phase==="running" && timeLeft<=10);
+    var el=TOTAL-timeLeft;
+    $("hint").textContent=(phase==="running"&&el>=30)?"✋ 可以比動作了 Được dùng tay chân":(phase==="running"?"先用說的 Nói trước, chưa dùng tay chân":"");
+    $("count").textContent=correct;
+    $("barFill").style.width=Math.min(100,correct/goal*100)+"%";
+    var active = phase==="running"||phase==="paused";
+    $("btnStart").textContent = phase==="running"?"暫停 Tạm dừng":(phase==="paused"?"繼續 Tiếp tục":"開始 Bắt đầu");
+    $("btnRight").disabled=!active; $("btnSkip").disabled=!active; $("btnFoul").disabled=!active;
+    var ok=0,no=0,sk=0;
+    results.forEach(function(r){ if(r==="ok")ok++; else if(r==="skip")sk++; else no++; });
+    var html="";
+    results.forEach(function(r,i){
+      var cls=r==="ok"?"ok":(r==="skip"?"skip":"no");
+      var txt={ok:"猜對",skip:"跳過",foul:"犯規",time:"時間到"}[r];
+      html+="<li>"+'<span class="tag '+cls+'">'+txt+"</span></li>";
+    });
+    $("log").innerHTML=html;
+    $("logSum").textContent="猜對 "+ok+" · 沒猜到 "+no+" · 跳過 "+sk;
+  }
+
+  function start(){
+    if(phase==="running"){ phase="paused"; stop(); render(); return; }
+    if(phase==="ready") setBox("第 "+turn+" 題", "開始了！Bắt đầu!");
+    phase="running"; stop();
+    tick=setInterval(function(){
+      timeLeft--;
+      if(timeLeft<=10&&timeLeft>0) beep(660,0.08);
+      if(timeLeft<=0){ timeLeft=0; finish("time"); beep(330,0.6); return; }
+      render();
+    },1000);
+    render();
+  }
+  function stop(){ if(tick){ clearInterval(tick); tick=null; } }
+
+  function finish(r){
+    stop(); results.push(r);
+    if(r==="ok"){ correct++; beep(880,0.15); setTimeout(function(){beep(1175,0.2);},150); }
+    var label={ok:"猜對了！✓",foul:"犯規，不算分 ✗",time:"時間到 ⏰"}[r];
+    turn++;
+    setBox(label, "說的人說出答案，下一位上台抽詞<br>Người tả nói đáp án, người tiếp theo lên rút từ");
+    phase="ready"; timeLeft=TOTAL; render();
+    if(r==="ok"&&correct>=goal&&!won){ won=true; $("winText").textContent="全班猜對了 "+correct+" 個詞！"; $("win").style.display="flex"; }
+  }
+  function skip(){
+    stop(); results.push("skip");
+    setBox("第 "+turn+" 題 · 換詞", "在手機上抽下一個詞，再按「開始」<br>Rút từ khác trên điện thoại, rồi bấm 開始");
+    phase="ready"; timeLeft=TOTAL; render();
+  }
+
+  var actx;
+  function beep(f,d){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); var o=actx.createOscillator(),g=actx.createGain(); o.frequency.value=f; o.connect(g); g.connect(actx.destination); g.gain.setValueAtTime(0.15,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+d); o.start(); o.stop(actx.currentTime+d);}catch(e){} }
+
+  $("btnStart").onclick=start;
+  $("btnRight").onclick=function(){finish("ok");};
+  $("btnFoul").onclick=function(){finish("foul");};
+  $("btnSkip").onclick=skip;
+  $("btnReset").onclick=function(){ $("resetAsk").hidden=false; };
+  $("resetNo").onclick=function(){ $("resetAsk").hidden=true; };
+  $("resetYes").onclick=function(){ $("resetAsk").hidden=true; reset(); };
+  $("btnWinClose").onclick=function(){ $("win").style.display="none"; };
+  $("btnSave").onclick=function(){ var g=parseInt($("goalInput").value,10); goal=g>0?g:20; try{localStorage.setItem("wsnc_goal",String(goal));}catch(e){} $("goal").textContent=goal; render(); msg("已儲存目標。Đã lưu."); };
+  document.addEventListener("keydown",function(e){ if(e.target.tagName==="INPUT") return; if(e.code==="Space"){ e.preventDefault(); start(); } });
+  reset();
+})();
+</script>
+</body>
+</html>
